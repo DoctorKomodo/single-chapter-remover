@@ -53,6 +53,8 @@ All options can be set via environment variables (Docker) or CLI flags (Python).
 | `SCAN_ONLY` | `--scan-only` | `false` | Dry-run: report without modifying files |
 | `IGNORE_CACHE` | `--ignore-cache` | `false` | Re-check all files, ignoring cache |
 | `LOG_LEVEL` | — | `INFO` | `DEBUG`, `INFO`, `WARNING`, or `ERROR` |
+| `PUID` | — | `1000` | UID the container process runs as |
+| `PGID` | — | `1000` | GID the container process runs as |
 
 ## Run modes
 
@@ -96,6 +98,24 @@ To avoid re-scanning large libraries on every run, the tool writes a cache file 
 
 Use `--ignore-cache` / `IGNORE_CACHE: "true"` to force a full re-scan.
 
+## File permissions
+
+By default the container process runs as UID/GID 1000. If your bind-mounted media directories are owned by a different user on the host, the container will fail to write the cache files or the modified MP4s. Fix this by setting `PUID` and `PGID` to match the host directory owner:
+
+```bash
+# Find your host UID/GID
+id
+# uid=1001(alice) gid=1001(alice) ...
+```
+
+```yaml
+environment:
+  PUID: "1001"
+  PGID: "1001"
+```
+
+The container entrypoint remaps the internal process to the specified UID/GID at startup before the application runs, so no `chown` on the host is required.
+
 ## How it works
 
 1. Recursively find all `.mp4` files under each configured path.
@@ -106,6 +126,18 @@ Use `--ignore-cache` / `IGNORE_CACHE: "true"` to force a full re-scan.
    - **Scan-only mode**: log a warning and record the file.
 5. Record all inspected files in the cache.
 6. Write a summary and the list of affected files to `single-chapter-files.txt`.
+
+## Passing CLI flags via docker run
+
+Configuration is intended to be set via environment variables (see [Configuration](#configuration) above). If you need to pass CLI flags directly, include the full command:
+
+```bash
+docker run --rm \
+  -e MEDIA_PATHS="/media/movies" \
+  -v /path/to/movies:/media/movies \
+  ghcr.io/doctorkomodo/single-chapter-remover:latest \
+  python fix_single_chapters.py --scan-only
+```
 
 ## Building the image locally
 

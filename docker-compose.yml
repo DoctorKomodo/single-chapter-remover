@@ -2,6 +2,12 @@ services:
   single-chapter-remover:
     image: ghcr.io/doctorkomodo/single-chapter-remover:latest
     environment:
+      # Optional: run the container process as a specific host UID/GID.
+      # Set these to match the owner of your bind-mounted media directories
+      # (run "id" on your host to find the values). Defaults to 1000:1000.
+      PUID: "1000"
+      PGID: "1000"
+
       # Required: colon-separated list of paths inside the container.
       # These must match the container-side mount points in the volumes section below.
       MEDIA_PATHS: "/media/movies:/media/tv"
