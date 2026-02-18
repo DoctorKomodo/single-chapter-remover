@@ -1,0 +1,36 @@
+services:
+  single-chapter-remover:
+    image: ghcr.io/doctorkomodo/single-chapter-remover:latest
+    environment:
+      # Required: colon-separated list of paths inside the container.
+      # These must match the container-side mount points in the volumes section below.
+      MEDIA_PATHS: "/media/movies:/media/tv"
+
+      # Optional: schedule for repeated runs.
+      # Accepts a cron expression (e.g. "0 3 * * *" for daily at 03:00 UTC)
+      # or a simple interval (e.g. "6h", "30m", "90s").
+      # Leave empty or omit to run once immediately and exit (single-shot mode).
+      SCHEDULE: ""
+
+      # Optional: set to "true" to report single-chapter files without modifying them.
+      SCAN_ONLY: "false"
+
+      # Optional: set to "true" to ignore the cache and re-check all files.
+      IGNORE_CACHE: "false"
+
+      # Optional: logging verbosity. One of DEBUG, INFO, WARNING, ERROR.
+      LOG_LEVEL: "INFO"
+
+    volumes:
+      # Mount your media directories to the paths listed in MEDIA_PATHS above.
+      - /path/to/your/movies:/media/movies
+      - /path/to/your/tv:/media/tv
+
+    # restart policy:
+    #   "no"             — safe default for single-shot mode (container exits cleanly
+    #                      and is not restarted).
+    #   "unless-stopped" — use this when SCHEDULE is set so the long-running container
+    #                      recovers automatically from crashes.
+    # WARNING: do NOT use "unless-stopped" or "always" with single-shot mode —
+    # Docker restarts containers on any exit including code 0, causing an infinite loop.
+    restart: "no"
