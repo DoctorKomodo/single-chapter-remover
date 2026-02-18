@@ -2,7 +2,7 @@
 
 Scans MP4 files recursively and removes spurious single-chapter metadata — no re-encoding, no quality loss.
 
-Some tools (encoders, editors, download clients) embed a single, unnecessary chapter marker in MP4 files. This confuses media players and home-theatre software. This tool detects those files via `ffprobe` and strips the chapter track with `ffmpeg -map_chapters -1 -c copy`.
+Some tools (encoders, editors, download clients) embed a single, unnecessary chapter marker in MP4 files. This may confuses media players and home-theatre software. This tool detects those files via `ffprobe` and strips the chapter track with `ffmpeg -map_chapters -1 -c copy`.
 
 ## Quick start
 
