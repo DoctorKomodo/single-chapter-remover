@@ -20,7 +20,8 @@ Key dependencies: `ffprobe` / `ffmpeg` (runtime), `APScheduler` (optional schedu
 |------|---------|
 | `fix_single_chapters.py` | Main Python implementation |
 | `fix-single-chapters.ps1` | PowerShell implementation (Windows) |
-| `Dockerfile` | Docker image (python:3.12-slim + ffmpeg) |
+| `Dockerfile` | Docker image (python:3.12-slim + ffmpeg + gosu) |
+| `entrypoint.sh` | Container entrypoint: remaps PUID/PGID at runtime, then execs the app |
 | `docker-compose.yml` | Reference Compose configuration |
 | `requirements.txt` | Python dependencies (APScheduler) |
 
@@ -33,6 +34,8 @@ Key dependencies: `ffprobe` / `ffmpeg` (runtime), `APScheduler` (optional schedu
 | `SCAN_ONLY` | `--scan-only` | `false` | Dry-run: report without modifying files |
 | `IGNORE_CACHE` | `--ignore-cache` | `false` | Re-check all files, ignoring cache |
 | `LOG_LEVEL` | — | `INFO` | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+| `PUID` | — | `1000` | UID the container process runs as (Docker only) |
+| `PGID` | — | `1000` | GID the container process runs as (Docker only) |
 
 ## Cache files written per scanned directory
 
