@@ -26,7 +26,11 @@ services:
       - /path/to/your/movies:/media/movies
       - /path/to/your/tv:/media/tv
 
-    # "unless-stopped" ensures:
-    #   - Scheduled containers restart automatically after a crash.
-    #   - Single-shot containers (exit code 0) are NOT restarted endlessly.
-    restart: unless-stopped
+    # restart policy:
+    #   "no"             — safe default for single-shot mode (container exits cleanly
+    #                      and is not restarted).
+    #   "unless-stopped" — use this when SCHEDULE is set so the long-running container
+    #                      recovers automatically from crashes.
+    # WARNING: do NOT use "unless-stopped" or "always" with single-shot mode —
+    # Docker restarts containers on any exit including code 0, causing an infinite loop.
+    restart: "no"

@@ -139,7 +139,9 @@ def process_path(path: str, scan_only: bool, ignore_cache: bool) -> None:
     newly_checked: list[str] = []
     skipped_count = 0
 
-    for mp4 in Path(path).rglob("*.mp4"):
+    for mp4 in Path(path).rglob("*"):
+        if not mp4.is_file() or mp4.suffix.lower() != ".mp4":
+            continue
         file = str(mp4.resolve())
 
         if file in cached_files:
@@ -201,14 +203,17 @@ def process_path(path: str, scan_only: bool, ignore_cache: bool) -> None:
     logger.info("  Cache saved to:    %s", cache_path)
 
 
-def run_all_paths(paths: list[str], scan_only: bool, ignore_cache: bool) -> None:
-    """Process each path in sequence."""
+def run_all_paths(paths: list[str], scan_only: bool, ignore_cache: bool) -> int:
+    """Process each path in sequence. Returns 1 if any path was invalid, else 0."""
+    had_error = False
     for path in paths:
         if not os.path.isdir(path):
             logger.error("Path does not exist or is not a directory: %s", path)
+            had_error = True
             continue
         logger.info("=== Processing path: %s ===", path)
         process_path(path, scan_only=scan_only, ignore_cache=ignore_cache)
+    return 1 if had_error else 0
 
 # ---------------------------------------------------------------------------
 # Scheduling
@@ -293,8 +298,9 @@ def main() -> None:
     if trigger is None:
         # Single-shot mode
         logger.info("Running in single-shot mode.")
-        run_all_paths(paths, scan_only=scan_only, ignore_cache=ignore_cache)
+        exit_code = run_all_paths(paths, scan_only=scan_only, ignore_cache=ignore_cache)
         logger.info("Done.")
+        sys.exit(exit_code)
     else:
         # Scheduled mode
         from apscheduler.schedulers.blocking import BlockingScheduler
