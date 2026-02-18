@@ -89,7 +89,7 @@ SCAN_ONLY: "true"
 
 ## Caching
 
-To avoid re-scanning large libraries on every run, the tool writes a cache file into each scanned directory:
+To avoid re-scanning large libraries on every run, the tool writes a cache file into each scanned root directory:
 
 | File | Purpose |
 |------|---------|
