@@ -12,6 +12,20 @@ param(
 $checkedFilesPath = Join-Path -Path $Path -ChildPath "checked-files.txt"
 $problemFilesPath = Join-Path -Path $Path -ChildPath "single-chapter-files.txt"
 
+# Log ffmpeg version
+if (Get-Command ffmpeg -ErrorAction SilentlyContinue) {
+    $ffmpegVersionLine = (ffmpeg -version 2>&1 | Select-Object -First 1) -as [string]
+    if ($ffmpegVersionLine -match '^ffmpeg version (\S+)') {
+        Write-Host "ffmpeg version: $($Matches[1])" -ForegroundColor Cyan
+    } else {
+        Write-Host "ffmpeg version: $ffmpegVersionLine" -ForegroundColor Cyan
+    }
+} else {
+    Write-Host "ffmpeg not found — ensure it is installed and on PATH" -ForegroundColor Red
+}
+
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
 # Load previously checked files
 $checkedFiles = @{}
 if ((Test-Path $checkedFilesPath) -and -not $IgnoreCache) {
@@ -110,3 +124,5 @@ if ($allProblemFiles.Count -gt 0) {
 if ($newlyChecked.Count -gt 0) {
     Write-Host "Cache saved to:    $checkedFilesPath" -ForegroundColor Cyan
 }
+$stopwatch.Stop()
+Write-Host "Duration:          $([math]::Round($stopwatch.Elapsed.TotalSeconds, 1))s"

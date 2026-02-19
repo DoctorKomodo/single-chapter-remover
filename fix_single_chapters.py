@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -38,6 +39,24 @@ PROBLEM_FILENAME = "single-chapter-files.txt"
 # ---------------------------------------------------------------------------
 # ffprobe / ffmpeg helpers
 # ---------------------------------------------------------------------------
+
+
+def log_ffmpeg_version() -> None:
+    """Log the ffmpeg version string."""
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-version"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            logger.warning("ffmpeg exited with code %d when queried for version", result.returncode)
+        first_line = result.stdout.splitlines()[0] if result.stdout else ""
+        m = re.match(r"ffmpeg version (\S+)", first_line)
+        version = m.group(1) if m else first_line or "unknown"
+        logger.info("ffmpeg version: %s", version)
+    except OSError as exc:
+        logger.error("ffmpeg not accessible: %s", exc)
 
 
 def get_chapter_count(file_path: str) -> int:
@@ -123,6 +142,8 @@ def process_path(path: str, scan_only: bool, ignore_cache: bool) -> None:
     cache_path = os.path.join(path, CACHE_FILENAME)
     problem_path = os.path.join(path, PROBLEM_FILENAME)
 
+    run_start = time.monotonic()
+
     # Load cache
     cached_files: set = set()
     if not ignore_cache:
@@ -206,10 +227,13 @@ def process_path(path: str, scan_only: bool, ignore_cache: bool) -> None:
         logger.info("  Results saved to:  %s", problem_path)
     if newly_checked:
         logger.info("  Cache saved to:    %s", cache_path)
+    logger.info("  Duration:          %.1fs", time.monotonic() - run_start)
 
 
 def run_all_paths(paths: list[str], scan_only: bool, ignore_cache: bool) -> int:
     """Process each path in sequence. Returns 1 if any path was invalid, else 0."""
+    log_ffmpeg_version()
+    total_start = time.monotonic()
     had_error = False
     for path in paths:
         if not os.path.isdir(path):
@@ -218,6 +242,7 @@ def run_all_paths(paths: list[str], scan_only: bool, ignore_cache: bool) -> int:
             continue
         logger.info("=== Processing path: %s ===", path)
         process_path(path, scan_only=scan_only, ignore_cache=ignore_cache)
+    logger.info("Total run time: %.1fs", time.monotonic() - total_start)
     return 1 if had_error else 0
 
 # ---------------------------------------------------------------------------
