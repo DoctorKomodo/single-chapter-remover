@@ -25,6 +25,7 @@ $problemFiles = @()
 $fixedFiles = @()
 $newlyChecked = @()
 $skippedCount = 0
+$checkedCount = 0
 
 Get-ChildItem -Path $Path -Filter "*.mp4" -Recurse | ForEach-Object {
     $file = $_.FullName
@@ -38,15 +39,16 @@ Get-ChildItem -Path $Path -Filter "*.mp4" -Recurse | ForEach-Object {
     Write-Host "Checking: $file"
 
     # Get chapter count using ffprobe
-    $chapterCount = (ffprobe -v quiet -print_format json -show_chapters "$file" | 
+    $chapterCount = (ffprobe -v quiet -print_format json -show_chapters "$file" |
                      ConvertFrom-Json).chapters.Count
 
-    $newlyChecked += $file
+    $checkedCount++
 
     if ($chapterCount -eq 1) {
         if ($ScanOnly) {
             Write-Host "  Single chapter found" -ForegroundColor Yellow
             $problemFiles += $file
+            # Do not cache — file hasn't been fixed; allow it to be caught on a future fix run
         } else {
             Write-Host "  Fixing..."
 
@@ -60,18 +62,21 @@ Get-ChildItem -Path $Path -Filter "*.mp4" -Recurse | ForEach-Object {
                 Rename-Item "$tempFile" "$file"
                 Write-Host "  Done!" -ForegroundColor Green
                 $fixedFiles += $file
+                $newlyChecked += $file
             } else {
                 Remove-Item "$tempFile" -ErrorAction SilentlyContinue
                 Write-Host "  Failed!" -ForegroundColor Red
                 $problemFiles += $file
+                # Do not cache — fix failed; allow retry on next run
             }
         }
     } else {
         Write-Host "  OK ($chapterCount chapters)" -ForegroundColor DarkGray
+        $newlyChecked += $file
     }
 }
 
-# Update checked files cache
+# Update checked files cache — only when new files were cleared for caching
 if ($newlyChecked.Count -gt 0) {
     $allChecked = @($checkedFiles.Keys) + $newlyChecked
     $allChecked | Out-File -FilePath $checkedFilesPath -Encoding UTF8
@@ -88,7 +93,7 @@ if ($allProblemFiles.Count -gt 0) {
 # Summary
 Write-Host "`n--- Summary ---" -ForegroundColor Cyan
 Write-Host "Skipped (cached):  $skippedCount"
-Write-Host "Checked (new):     $($newlyChecked.Count)"
+Write-Host "Checked (new):     $checkedCount"
 Write-Host "Problems found:    $($allProblemFiles.Count)"
 
 if (-not $ScanOnly -and $fixedFiles.Count -gt 0) {
@@ -102,4 +107,6 @@ if ($problemFiles.Count -gt 0) {
 if ($allProblemFiles.Count -gt 0) {
     Write-Host "Results saved to:  $problemFilesPath" -ForegroundColor Cyan
 }
-Write-Host "Cache saved to:    $checkedFilesPath" -ForegroundColor Cyan
+if ($newlyChecked.Count -gt 0) {
+    Write-Host "Cache saved to:    $checkedFilesPath" -ForegroundColor Cyan
+}
