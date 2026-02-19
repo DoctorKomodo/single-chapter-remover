@@ -158,23 +158,24 @@ def process_path(path: str, scan_only: bool, ignore_cache: bool) -> None:
             # Do not cache — allow retry on next run
             continue
 
-        # Mark as checked regardless of chapter count (matches PS behaviour)
-        newly_checked.append(file)
-
         if chapter_count == 1:
             if scan_only:
                 logger.warning("  Single chapter found (scan only)")
                 problem_files.append(file)
+                # Do not cache — file hasn't been fixed; allow it to be caught on a future fix run
             else:
                 logger.info("  Fixing...")
                 if strip_chapters(file):
                     logger.info("  Done!")
                     fixed_files.append(file)
+                    newly_checked.append(file)
                 else:
                     logger.warning("  Failed!")
                     problem_files.append(file)
+                    # Do not cache — fix failed; allow retry on next run
         else:
             logger.info("  OK (%d chapters)", chapter_count)
+            newly_checked.append(file)
 
     # Update cache — only when new files were checked (matches PS behaviour)
     if newly_checked:
