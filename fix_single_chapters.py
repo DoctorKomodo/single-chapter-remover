@@ -138,6 +138,7 @@ def process_path(path: str, scan_only: bool, ignore_cache: bool) -> None:
     fixed_files: list[str] = []
     newly_checked: list[str] = []
     skipped_count = 0
+    probed_count = 0
 
     for mp4 in Path(path).rglob("*"):
         if not mp4.is_file() or mp4.suffix.lower() != ".mp4":
@@ -158,25 +159,28 @@ def process_path(path: str, scan_only: bool, ignore_cache: bool) -> None:
             # Do not cache — allow retry on next run
             continue
 
-        # Mark as checked regardless of chapter count (matches PS behaviour)
-        newly_checked.append(file)
+        probed_count += 1
 
         if chapter_count == 1:
             if scan_only:
                 logger.warning("  Single chapter found (scan only)")
                 problem_files.append(file)
+                # Do not cache — file hasn't been fixed; allow it to be caught on a future fix run
             else:
                 logger.info("  Fixing...")
                 if strip_chapters(file):
                     logger.info("  Done!")
                     fixed_files.append(file)
+                    newly_checked.append(file)
                 else:
                     logger.warning("  Failed!")
                     problem_files.append(file)
+                    # Do not cache — fix failed; allow retry on next run
         else:
             logger.info("  OK (%d chapters)", chapter_count)
+            newly_checked.append(file)
 
-    # Update cache — only when new files were checked (matches PS behaviour)
+    # Update cache — only when new files were cleared for caching
     if newly_checked:
         all_checked = cached_files | set(newly_checked)
         save_cache(cache_path, all_checked)
@@ -191,7 +195,7 @@ def process_path(path: str, scan_only: bool, ignore_cache: bool) -> None:
     # Summary
     logger.info("--- Summary for %s ---", path)
     logger.info("  Skipped (cached):  %d", skipped_count)
-    logger.info("  Checked (new):     %d", len(newly_checked))
+    logger.info("  Checked (new):     %d", probed_count)
     logger.info("  Problems found:    %d", len(all_problem_files))
     if not scan_only and fixed_files:
         logger.info("    Fixed:           %d", len(fixed_files))
@@ -200,7 +204,8 @@ def process_path(path: str, scan_only: bool, ignore_cache: bool) -> None:
         logger.warning("    %s:         %d", label, len(problem_files))
     if all_problem_files:
         logger.info("  Results saved to:  %s", problem_path)
-    logger.info("  Cache saved to:    %s", cache_path)
+    if newly_checked:
+        logger.info("  Cache saved to:    %s", cache_path)
 
 
 def run_all_paths(paths: list[str], scan_only: bool, ignore_cache: bool) -> int:
